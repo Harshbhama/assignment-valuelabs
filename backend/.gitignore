@@ -1,1 +1,8 @@
 /node_modules
+/dist
+
+# Local environment variables — never commit real values.
+.env
+
+# Build output
+*.js.map

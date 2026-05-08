@@ -1,99 +1,63 @@
 import React, { useState } from "react";
-import axios from "axios";
-
-type VehicleMap = Record<string, Record<string, string[]>>;
-
-interface QuickSelect {
-  label: string;
-  make: string;
-  model: string;
-  badge: string;
-}
-
-interface SubmitApiResponse {
-  success: boolean;
-  vehicle: {
-    make: string;
-    model: string;
-    badge: string;
-  };
-  logbookContents: string;
-  error?: string;
-}
-
-const VEHICLES: VehicleMap = {
-  ford: {
-    Ranger: ["Raptor", "Raptor X", "Wildtrak"],
-    Falcon: ["XR6", "XR6 Turbo", "XR8"],
-    "Falcon Ute": ["XR6", "XR6 Turbo"],
-  },
-  bmw: {
-    "130d": ["xDrive 26d", "xDrive 30d"],
-    "240i": ["xDrive 30d", "xDrive 50d"],
-    "320e": ["xDrive 75d", "xDrive 80d", "xDrive 85d"],
-  },
-  tesla: {
-    "Model 3": ["Performance", "Long Range", "Dual Motor"],
-  },
-};
-
-const displayMake = (key: string): string =>
-  key.charAt(0).toUpperCase() + key.slice(1);
-
-const QUICK_SELECTS: QuickSelect[] = [
-  {
-    label: "Tesla Model 3 Performance",
-    make: "tesla",
-    model: "Model 3",
-    badge: "Performance",
-  },
-  {
-    label: "BMW 130d xDrive 26d",
-    make: "bmw",
-    model: "130d",
-    badge: "xDrive 26d",
-  },
-];
+import { VEHICLES, QUICK_SELECTS } from "../constants/vehicles";
+import { submitVehicleForm } from "../services/vehicleApi";
+import { displayMake } from "../utils/format";
+import { QuickSelect, SubmitApiResponse } from "../types/vehicle";
 
 function VehicleForm() {
   const [make, setMake] = useState<string>("");
   const [model, setModel] = useState<string>("");
   const [badge, setBadge] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
-
-  const modelOptions: string[] = make ? Object.keys(VEHICLES[make]) : [];
-  const badgeOptions: string[] = model && make ? (VEHICLES[make]?.[model] ?? []) : [];
-
   const [loading, setLoading] = useState<boolean>(false);
   const [response, setResponse] = useState<SubmitApiResponse | null>(null);
   const [error, setError] = useState<string>("");
 
-  const handleMakeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  // Derived directly from VEHICLES rather than stored in state: they are always
+  // computable from the current make/model values and never need to be set independently.
+  const modelOptions: string[] = make ? Object.keys(VEHICLES[make]) : [];
+  const badgeOptions: string[] =
+    model && make ? (VEHICLES[make]?.[model] ?? []) : [];
+
+  // Cascading reset: changing make must clear both model and badge since the
+  // available options for each depend entirely on the parent selection.
+  // Changing model only clears badge.
+  const resetDownstream = (level: "make" | "model"): void => {
+    if (level === "make") setModel("");
+    setBadge("");
+    setResponse(null);
+    setError("");
+  };
+
+  const handleMakeChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
     setMake(e.target.value);
-    setModel("");
-    setBadge("");
-    setResponse(null);
-    setError("");
+    resetDownstream("make");
   };
 
-  const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
     setModel(e.target.value);
-    setBadge("");
-    setResponse(null);
-    setError("");
+    resetDownstream("model");
   };
 
-  const handleBadgeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleBadgeChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
     setBadge(e.target.value);
     setResponse(null);
     setError("");
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    // files can be null when the input is cleared; fall back to null to keep
+    // the File | null type consistent throughout the component.
     setFile(e.target.files?.[0] ?? null);
   };
 
-  const handleQuickSelect = ({ make: m, model: mo, badge: b }: QuickSelect) => {
+  const handleQuickSelect = ({
+    make: m,
+    model: mo,
+    badge: b,
+  }: QuickSelect): void => {
+    // Set all three levels atomically so the dropdowns reflect the full
+    // preset in a single render rather than three cascading renders.
     setMake(m);
     setModel(mo);
     setBadge(b);
@@ -101,7 +65,11 @@ function VehicleForm() {
     setError("");
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
+    // noValidate is set on the form so the browser does not show its own
+    // validation UI; all validation is handled here for consistent styling.
     e.preventDefault();
 
     if (!make || !model || !badge) {
@@ -113,27 +81,20 @@ function VehicleForm() {
       return;
     }
 
+    // Disable the submit button for the duration of the request to prevent
+    // duplicate submissions if the user clicks multiple times.
     setLoading(true);
     setError("");
     setResponse(null);
 
     try {
-      const formData = new FormData();
-      formData.append("make", make);
-      formData.append("model", model);
-      formData.append("badge", badge);
-      formData.append("logbook", file);
-
-      const res = await axios.post<SubmitApiResponse>("/api/submit", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      setResponse(res.data);
+      const data = await submitVehicleForm(make, model, badge, file);
+      setResponse(data);
     } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response?.data?.error) {
-        setError(err.response.data.error as string);
-      } else if (err instanceof Error) {
-        setError(`Network error: ${err.message}`);
+      // vehicleApi normalises axios errors to plain Error instances, so a
+      // single instanceof check is sufficient here.
+      if (err instanceof Error) {
+        setError(err.message);
       } else {
         setError("An unexpected error occurred. Please try again.");
       }
@@ -151,6 +112,7 @@ function VehicleForm() {
             <button
               key={qs.label}
               type="button"
+              // Highlight the button when its preset exactly matches the current selection.
               className={`quick-select-btn${
                 make === qs.make && model === qs.model && badge === qs.badge
                   ? " quick-select-btn--active"
@@ -164,6 +126,7 @@ function VehicleForm() {
         </div>
       </section>
 
+      {/* noValidate suppresses native browser validation popups */}
       <form className="vehicle-form" onSubmit={handleSubmit} noValidate>
         <div className="form-group">
           <label htmlFor="make" className="form-label">
@@ -188,6 +151,7 @@ function VehicleForm() {
           <label htmlFor="model" className="form-label">
             Model
           </label>
+          {/* Disabled until a make is chosen so the user follows the intended cascade order */}
           <select
             id="model"
             className="form-select"
@@ -208,6 +172,7 @@ function VehicleForm() {
           <label htmlFor="badge" className="form-label">
             Badge
           </label>
+          {/* Disabled until a model is chosen so the badge list is always relevant */}
           <select
             id="badge"
             className="form-select"
@@ -228,6 +193,8 @@ function VehicleForm() {
           <label htmlFor="logbook" className="form-label">
             Upload Logbook:
           </label>
+          {/* accept=".txt" provides a hint to the OS file picker but is not a
+              security boundary; the server's fileFilter is the enforced constraint. */}
           <input
             id="logbook"
             type="file"
@@ -272,6 +239,7 @@ function VehicleForm() {
 
           <div className="logbook-section">
             <h3 className="logbook-title">Logbook Contents</h3>
+            {/* pre preserves the original whitespace and line breaks from the uploaded text file */}
             <pre className="logbook-pre">{response.logbookContents}</pre>
           </div>
         </section>
