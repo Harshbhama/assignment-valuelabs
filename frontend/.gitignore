@@ -1,10 +1,10 @@
 /node_modules
-/build
+/dist
 
 # Local environment variables — never commit real values.
 .env
 
-# CRA local override files
+# Vite local override files
 .env.local
 .env.development.local
 .env.test.local

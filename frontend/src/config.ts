@@ -1,7 +1,7 @@
 // Single place where all environment variables are read and given defaults.
-// CRA only exposes variables prefixed with REACT_APP_ to the browser bundle.
-// Import from here instead of reading process.env directly elsewhere.
+// Vite only exposes variables prefixed with VITE_ to the browser bundle via import.meta.env.
+// Import from here instead of accessing import.meta.env directly elsewhere.
 export const config = {
-  // Falls back to /api so the CRA dev-proxy works out of the box without a .env file.
-  apiBaseUrl: process.env.REACT_APP_API_BASE_URL ?? "/api",
+  // Falls back to /api so the Vite dev-proxy works out of the box without a .env file.
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? "/api",
 } as const;
