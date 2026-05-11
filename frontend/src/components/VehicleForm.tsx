@@ -103,21 +103,27 @@ function VehicleForm() {
     }
   };
 
+  const selectClass =
+    "select-chevron w-full py-2.5 pl-3 pr-9 text-sm text-[#1a1a2e] bg-white border border-gray-300 rounded-lg appearance-none cursor-pointer transition duration-150 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-gray-200";
+
   return (
-    <div className="form-wrapper">
-      <section className="quick-select-section">
-        <h2 className="section-title">Select a Vehicle</h2>
-        <div className="quick-select-buttons">
+    <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      {/* ---- Quick-select buttons ---- */}
+      <section className="px-4 sm:px-7 pt-6 pb-5 border-b border-gray-100 bg-gray-50">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">
+          Select a Vehicle
+        </h2>
+        <div className="flex flex-wrap gap-2.5">
           {QUICK_SELECTS.map((qs) => (
             <button
               key={qs.label}
               type="button"
               // Highlight the button when its preset exactly matches the current selection.
-              className={`quick-select-btn${
+              className={
                 make === qs.make && model === qs.model && badge === qs.badge
-                  ? " quick-select-btn--active"
-                  : ""
-              }`}
+                  ? "px-4 py-2 text-sm font-medium rounded-md border whitespace-nowrap transition-all duration-150 cursor-pointer bg-indigo-600 text-white border-indigo-600 shadow-[0_2px_6px_rgba(79,70,229,0.35)]"
+                  : "px-4 py-2 text-sm font-medium rounded-md border whitespace-nowrap transition-all duration-150 cursor-pointer bg-white text-gray-700 border-gray-300 hover:border-indigo-600 hover:text-indigo-600 hover:bg-indigo-50"
+              }
               onClick={() => handleQuickSelect(qs)}
             >
               {qs.label}
@@ -127,14 +133,22 @@ function VehicleForm() {
       </section>
 
       {/* noValidate suppresses native browser validation popups */}
-      <form className="vehicle-form" onSubmit={handleSubmit} noValidate>
-        <div className="form-group">
-          <label htmlFor="make" className="form-label">
+      <form
+        className="px-4 sm:px-7 pt-7 pb-6"
+        onSubmit={handleSubmit}
+        noValidate
+      >
+        {/* Make */}
+        <div className="mb-5">
+          <label
+            htmlFor="make"
+            className="block text-sm font-semibold text-gray-700 mb-1.5"
+          >
             Make
           </label>
           <select
             id="make"
-            className="form-select"
+            className={selectClass}
             value={make}
             onChange={handleMakeChange}
           >
@@ -147,14 +161,18 @@ function VehicleForm() {
           </select>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="model" className="form-label">
+        {/* Model */}
+        <div className="mb-5">
+          <label
+            htmlFor="model"
+            className="block text-sm font-semibold text-gray-700 mb-1.5"
+          >
             Model
           </label>
           {/* Disabled until a make is chosen so the user follows the intended cascade order */}
           <select
             id="model"
-            className="form-select"
+            className={selectClass}
             value={model}
             onChange={handleModelChange}
             disabled={!make}
@@ -168,14 +186,18 @@ function VehicleForm() {
           </select>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="badge" className="form-label">
+        {/* Badge */}
+        <div className="mb-5">
+          <label
+            htmlFor="badge"
+            className="block text-sm font-semibold text-gray-700 mb-1.5"
+          >
             Badge
           </label>
           {/* Disabled until a model is chosen so the badge list is always relevant */}
           <select
             id="badge"
-            className="form-select"
+            className={selectClass}
             value={badge}
             onChange={handleBadgeChange}
             disabled={!model}
@@ -189,8 +211,12 @@ function VehicleForm() {
           </select>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="logbook" className="form-label">
+        {/* File upload */}
+        <div className="mb-5">
+          <label
+            htmlFor="logbook"
+            className="block text-sm font-semibold text-gray-700 mb-1.5"
+          >
             Upload Logbook:
           </label>
           {/* accept=".txt" provides a hint to the OS file picker but is not a
@@ -199,48 +225,78 @@ function VehicleForm() {
             id="logbook"
             type="file"
             accept=".txt"
-            className="form-file-input"
+            className="block w-full text-sm text-gray-700 py-2 cursor-pointer file:px-3.5 file:py-1.5 file:text-xs file:font-medium file:text-gray-700 file:bg-gray-100 file:border file:border-gray-300 file:rounded-md file:cursor-pointer file:mr-2.5 file:transition-colors hover:file:bg-gray-200"
             onChange={handleFileChange}
           />
-          {file && <span className="file-name-display">{file.name}</span>}
+          {file && (
+            <span className="inline-block mt-1.5 text-xs text-indigo-600 italic">
+              {file.name}
+            </span>
+          )}
         </div>
 
+        {/* Error banner */}
         {error && (
-          <div className="error-banner" role="alert">
-            <span className="error-icon">&#9888;</span> {error}
+          <div
+            className="flex items-center gap-2 px-4 py-3 mb-5 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm font-medium"
+            role="alert"
+          >
+            <span className="text-base shrink-0">&#9888;</span> {error}
           </div>
         )}
 
-        <button type="submit" className="submit-btn" disabled={loading}>
+        {/* Submit */}
+        <button
+          type="submit"
+          className="w-full py-3 mt-1 text-base font-semibold text-white bg-indigo-600 rounded-lg cursor-pointer tracking-wide transition duration-150 hover:bg-indigo-700 hover:shadow-[0_4px_12px_rgba(79,70,229,0.35)] active:translate-y-px disabled:bg-indigo-300 disabled:cursor-not-allowed"
+          disabled={loading}
+        >
           {loading ? "Submitting\u2026" : "Submit"}
         </button>
       </form>
 
+      {/* ---- Submission result ---- */}
       {response && (
-        <section className="response-section">
-          <h2 className="section-title">Submission Result</h2>
+        <section className="px-4 sm:px-7 pt-7 pb-8 border-t border-gray-100 bg-gray-50">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">
+            Submission Result
+          </h2>
 
-          <div className="response-vehicle-info">
-            <div className="response-row">
-              <span className="response-key">Make</span>
-              <span className="response-value">
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-5">
+            <div className="flex items-center px-4 py-3 border-b border-gray-100">
+              <span className="w-20 text-xs font-bold uppercase tracking-wider text-gray-500 shrink-0">
+                Make
+              </span>
+              <span className="text-sm font-medium text-[#1a1a2e]">
                 {displayMake(response.vehicle.make)}
               </span>
             </div>
-            <div className="response-row">
-              <span className="response-key">Model</span>
-              <span className="response-value">{response.vehicle.model}</span>
+            <div className="flex items-center px-4 py-3 border-b border-gray-100">
+              <span className="w-20 text-xs font-bold uppercase tracking-wider text-gray-500 shrink-0">
+                Model
+              </span>
+              <span className="text-sm font-medium text-[#1a1a2e]">
+                {response.vehicle.model}
+              </span>
             </div>
-            <div className="response-row">
-              <span className="response-key">Badge</span>
-              <span className="response-value">{response.vehicle.badge}</span>
+            <div className="flex items-center px-4 py-3">
+              <span className="w-20 text-xs font-bold uppercase tracking-wider text-gray-500 shrink-0">
+                Badge
+              </span>
+              <span className="text-sm font-medium text-[#1a1a2e]">
+                {response.vehicle.badge}
+              </span>
             </div>
           </div>
 
-          <div className="logbook-section">
-            <h3 className="logbook-title">Logbook Contents</h3>
+          <div className="mt-1">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2.5">
+              Logbook Contents
+            </h3>
             {/* pre preserves the original whitespace and line breaks from the uploaded text file */}
-            <pre className="logbook-pre">{response.logbookContents}</pre>
+            <pre className="bg-[#1e1e2e] text-[#cdd6f4] px-[18px] py-4 rounded-lg font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap break-words">
+              {response.logbookContents}
+            </pre>
           </div>
         </section>
       )}
